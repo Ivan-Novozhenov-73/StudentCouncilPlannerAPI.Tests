@@ -272,3 +272,4 @@ D:\Projects\StudetCouncilPlanner\StudentCouncilPlannerAPI.Tests\obj\Debug\net9.0
 D:\Projects\StudetCouncilPlanner\StudentCouncilPlannerAPI.Tests\obj\Debug\net9.0\StudentCouncilPlannerAPI.Tests.pdb
 D:\Projects\StudetCouncilPlanner\StudentCouncilPlannerAPI.Tests\obj\Debug\net9.0\StudentCouncilPlannerAPI.Tests.genruntimeconfig.cache
 D:\Projects\StudetCouncilPlanner\StudentCouncilPlannerAPI.Tests\obj\Debug\net9.0\ref\StudentCouncilPlannerAPI.Tests.dll
+D:\Projects\StudetCouncilPlanner\StudentCouncilPlannerAPI.Tests\obj\Debug\net9.0\StudentCouncilPlannerAPI.Tests.sourcelink.json

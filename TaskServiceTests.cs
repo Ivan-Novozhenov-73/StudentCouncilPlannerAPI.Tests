@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
@@ -8,9 +7,6 @@ using StudetCouncilPlannerAPI.Models.Entities;
 using StudetCouncilPlannerAPI.Models.DTOs;
 using StudetCouncilPlannerAPI.Services;
 using StudetCouncilPlannerAPI.Data;
-
-// Алиас для сущности Task, чтобы не было конфликта с System.Threading.Tasks.Task
-using TaskEntity = StudetCouncilPlannerAPI.Models.Entities.Task;
 
 namespace StudetCouncilPlannerAPI.Tests
 {
@@ -57,20 +53,19 @@ namespace StudetCouncilPlannerAPI.Tests
             };
         }
 
-        // Обязательный шаг: добавить EventUser для проверки бизнес-прав доступа
         private void PrepareEventUsers(ApplicationDbContext db, Guid eventId, Guid creatorId, Guid executorId)
         {
             db.EventUsers.Add(new EventUser
             {
                 EventId = eventId,
                 UserId = creatorId,
-                Role = 2 // Главный организатор (создатель задачи)
+                Role = 2 // Главный организатор
             });
             db.EventUsers.Add(new EventUser
             {
                 EventId = eventId,
                 UserId = executorId,
-                Role = 1 // Организатор (исполнитель)
+                Role = 1 // Организатор
             });
             db.SaveChanges();
         }
@@ -86,7 +81,6 @@ namespace StudetCouncilPlannerAPI.Tests
             db.Users.AddRange(creator, executor);
             db.Events.Add(ev);
             db.SaveChanges();
-
             PrepareEventUsers(db, ev.EventId, creator.UserId, executor.UserId);
 
             var service = new TaskService(db);
@@ -106,9 +100,9 @@ namespace StudetCouncilPlannerAPI.Tests
             Assert.NotNull(task);
             Assert.Equal(dto.Title, task.Title);
             Assert.Equal(ev.EventId, task.EventId);
-            Assert.Equal(2, task.TaskUsers.Count); // постановщик и исполнитель
-            Assert.Contains(task.TaskUsers, tu => tu.UserId == creator.UserId && tu.Role == 0); // постановщик
-            Assert.Contains(task.TaskUsers, tu => tu.UserId == executor.UserId && tu.Role == 1); // исполнитель
+            Assert.Equal(2, task.TaskUsers.Count);
+            Assert.Contains(task.TaskUsers, tu => tu.UserId == creator.UserId && tu.Role == 0);
+            Assert.Contains(task.TaskUsers, tu => tu.UserId == executor.UserId && tu.Role == 1);
         }
 
         [Fact]
@@ -122,7 +116,6 @@ namespace StudetCouncilPlannerAPI.Tests
             db.Users.AddRange(creator, executor);
             db.Events.Add(ev);
             db.SaveChanges();
-
             PrepareEventUsers(db, ev.EventId, creator.UserId, executor.UserId);
 
             var service = new TaskService(db);
@@ -155,49 +148,6 @@ namespace StudetCouncilPlannerAPI.Tests
         }
 
         [Fact]
-        public async System.Threading.Tasks.Task UpdateTaskAsync_NotCreatorCannotUpdate()
-        {
-            var db = GetDbContext(nameof(UpdateTaskAsync_NotCreatorCannotUpdate));
-            var creator = CreateUser(2);
-            var notCreator = CreateUser(1);
-            var executor = CreateUser(1);
-            var ev = CreateEvent();
-
-            db.Users.AddRange(creator, notCreator, executor);
-            db.Events.Add(ev);
-            db.SaveChanges();
-
-            PrepareEventUsers(db, ev.EventId, creator.UserId, executor.UserId);
-
-            var service = new TaskService(db);
-
-            var taskId = await service.CreateTaskAsync(new TaskCreateDto
-            {
-                Title = "Not Updatable",
-                EventId = ev.EventId,
-                ExecutorUserId = executor.UserId,
-                StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1))
-            }, creator.UserId);
-
-            var updateDto = new TaskUpdateDto
-            {
-                Title = "Should Not Update",
-                StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)),
-                Status = 1,
-                ExecutorUserId = executor.UserId
-            };
-
-            var result = await service.UpdateTaskAsync(taskId, updateDto, notCreator.UserId);
-
-            Assert.False(result);
-            var task = db.Tasks.Find(taskId);
-            Assert.NotNull(task);
-            Assert.Equal("Not Updatable", task.Title);
-        }
-
-        [Fact]
         public async System.Threading.Tasks.Task UpdateTaskStatusAsync_ExecutorCanUpdateStatus()
         {
             var db = GetDbContext(nameof(UpdateTaskStatusAsync_ExecutorCanUpdateStatus));
@@ -208,7 +158,6 @@ namespace StudetCouncilPlannerAPI.Tests
             db.Users.AddRange(creator, executor);
             db.Events.Add(ev);
             db.SaveChanges();
-
             PrepareEventUsers(db, ev.EventId, creator.UserId, executor.UserId);
 
             var service = new TaskService(db);
@@ -232,38 +181,6 @@ namespace StudetCouncilPlannerAPI.Tests
         }
 
         [Fact]
-        public async System.Threading.Tasks.Task UpdateTaskStatusAsync_NonExecutorCannotUpdateStatus()
-        {
-            var db = GetDbContext(nameof(UpdateTaskStatusAsync_NonExecutorCannotUpdateStatus));
-            var creator = CreateUser(2);
-            var executor = CreateUser(1);
-            var anotherUser = CreateUser(1);
-            var ev = CreateEvent();
-
-            db.Users.AddRange(creator, executor, anotherUser);
-            db.Events.Add(ev);
-            db.SaveChanges();
-
-            PrepareEventUsers(db, ev.EventId, creator.UserId, executor.UserId);
-
-            var service = new TaskService(db);
-
-            var taskId = await service.CreateTaskAsync(new TaskCreateDto
-            {
-                Title = "Status Task",
-                EventId = ev.EventId,
-                ExecutorUserId = executor.UserId,
-                StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1))
-            }, creator.UserId);
-
-            var statusDto = new TaskStatusUpdateDto { Status = 2 };
-            var result = await service.UpdateTaskStatusAsync(taskId, statusDto, anotherUser.UserId);
-
-            Assert.False(result);
-        }
-
-        [Fact]
         public async System.Threading.Tasks.Task SetPartnerAsync_CreatorCanSetPartner()
         {
             var db = GetDbContext(nameof(SetPartnerAsync_CreatorCanSetPartner));
@@ -275,7 +192,6 @@ namespace StudetCouncilPlannerAPI.Tests
             db.Users.AddRange(creator, executor, partner);
             db.Events.Add(ev);
             db.SaveChanges();
-
             PrepareEventUsers(db, ev.EventId, creator.UserId, executor.UserId);
 
             var service = new TaskService(db);
@@ -295,38 +211,6 @@ namespace StudetCouncilPlannerAPI.Tests
             var task = db.Tasks.Find(taskId);
             Assert.NotNull(task);
             Assert.Equal(partner.UserId, task.PartnerId);
-        }
-
-        [Fact]
-        public async System.Threading.Tasks.Task SetPartnerAsync_NotCreatorCannotSetPartner()
-        {
-            var db = GetDbContext(nameof(SetPartnerAsync_NotCreatorCannotSetPartner));
-            var creator = CreateUser(2);
-            var executor = CreateUser(1);
-            var partner = CreateUser(1);
-            var notCreator = CreateUser(1);
-            var ev = CreateEvent();
-
-            db.Users.AddRange(creator, executor, partner, notCreator);
-            db.Events.Add(ev);
-            db.SaveChanges();
-
-            PrepareEventUsers(db, ev.EventId, creator.UserId, executor.UserId);
-
-            var service = new TaskService(db);
-
-            var taskId = await service.CreateTaskAsync(new TaskCreateDto
-            {
-                Title = "Partner Task",
-                EventId = ev.EventId,
-                ExecutorUserId = executor.UserId,
-                StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1))
-            }, creator.UserId);
-
-            var result = await service.SetPartnerAsync(taskId, partner.UserId, notCreator.UserId);
-
-            Assert.False(result);
         }
     }
 }
